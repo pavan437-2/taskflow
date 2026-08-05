@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TaskFlow — Project & Task Management with Role-Based Access</title>
+  <meta name="description" content="Collaborative project management app with Admin/Member role-based access, Kanban boards, REST APIs, and overdue task tracking.">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+  <!-- Navigation Bar -->
+  <nav class="navbar">
+    <div class="brand">
+      <div class="brand-icon">⚡</div>
+      <span>TaskFlow</span>
+    </div>
+
+    <div class="nav-links">
+      <button class="nav-btn active" data-view="dashboard">
+        📊 Dashboard
+      </button>
+      <button class="nav-btn" data-view="projects">
+        📁 Projects & Teams
+      </button>
+      <button class="nav-btn" data-view="kanban">
+        📌 Kanban Board
+      </button>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 1rem;">
+      <div id="user-profile-nav" class="user-profile" style="display: none;"></div>
+      <button class="btn btn-secondary btn-sm" id="btn-open-auth">
+        Login / Sign Up
+      </button>
+    </div>
+  </nav>
+
+  <!-- Main View Container -->
+  <main class="container">
+    <!-- View 1: Dashboard -->
+    <section id="view-dashboard" class="view active"></section>
+
+    <!-- View 2: Projects List -->
+    <section id="view-projects" class="view"></section>
+
+    <!-- View 3: Project Kanban Board -->
+    <section id="view-kanban" class="view"></section>
+  </main>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- MODAL 1: Authentication (Login / Signup / Demo) -->
+  <div id="modal-auth" class="modal-backdrop">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>TaskFlow Access</h3>
+        <button class="modal-close">&times;</button>
+      </div>
+
+      <div style="display: flex; gap: 0.5rem; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">
+        <button class="nav-btn active" id="tab-auth-login" style="flex: 1; justify-content: center;">Login</button>
+        <button class="nav-btn" id="tab-auth-signup" style="flex: 1; justify-content: center;">Create Account</button>
+      </div>
+
+      <!-- Login Form -->
+      <form id="form-login">
+        <div class="form-group">
+          <label for="login-email">Email Address</label>
+          <input type="email" id="login-email" class="form-control" placeholder="user@taskflow.com" required />
+        </div>
+        <div class="form-group">
+          <label for="login-password">Password</label>
+          <input type="password" id="login-password" class="form-control" placeholder="••••••••" required />
+        </div>
+        <button type="submit" class="btn" style="width: 100%; justify-content: center;">Sign In</button>
+      </form>
+
+      <!-- Signup Form -->
+      <form id="form-signup" style="display: none;">
+        <div class="form-group">
+          <label for="signup-name">Full Name</label>
+          <input type="text" id="signup-name" class="form-control" placeholder="Alex Rivera" required />
+        </div>
+        <div class="form-group">
+          <label for="signup-email">Email Address</label>
+          <input type="email" id="signup-email" class="form-control" placeholder="user@taskflow.com" required />
+        </div>
+        <div class="form-group">
+          <label for="signup-password">Password (min 6 chars)</label>
+          <input type="password" id="signup-password" class="form-control" placeholder="••••••••" required minlength="6" />
+        </div>
+        <button type="submit" class="btn" style="width: 100%; justify-content: center;">Create Account</button>
+      </form>
+
+      <!-- Demo Account Quick Login -->
+      <div class="demo-accounts">
+        <p style="font-size: 0.82rem; color: var(--text-muted); font-weight: 500;">Quick Demo Instant Login:</p>
+        <div class="demo-btn-group">
+          <button class="btn btn-secondary btn-sm" id="btn-demo-admin">
+            👑 Demo Admin
+          </button>
+          <button class="btn btn-secondary btn-sm" id="btn-demo-member">
+            👤 Demo Member
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 2: Create Project -->
+  <div id="modal-create-project" class="modal-backdrop">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Create New Project</h3>
+        <button class="modal-close">&times;</button>
+      </div>
+      <form id="form-create-project">
+        <div class="form-group">
+          <label for="project-name-input">Project Name *</label>
+          <input type="text" id="project-name-input" class="form-control" placeholder="e.g., Mobile App Redesign" required />
+        </div>
+        <div class="form-group">
+          <label for="project-desc-input">Description</label>
+          <textarea id="project-desc-input" class="form-control" placeholder="Describe the objectives and scope of this project..."></textarea>
+        </div>
+        <div style="display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 1.5rem;">
+          <button type="button" class="btn btn-secondary modal-close">Cancel</button>
+          <button type="submit" class="btn">Create Project</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL 3: Create Task -->
+  <div id="modal-create-task" class="modal-backdrop">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="modal-task-title">Create Task</h3>
+        <button class="modal-close">&times;</button>
+      </div>
+      <form id="form-create-task">
+        <div class="form-group">
+          <label for="task-title-input">Task Title *</label>
+          <input type="text" id="task-title-input" class="form-control" placeholder="e.g. Design homepage hero section" required />
+        </div>
+        <div class="form-group">
+          <label for="task-desc-input">Description</label>
+          <textarea id="task-desc-input" class="form-control" placeholder="Task instructions or requirements..."></textarea>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+          <div class="form-group">
+            <label for="task-priority-select">Priority</label>
+            <select id="task-priority-select" class="form-control">
+              <option value="Medium">Medium</option>
+              <option value="Low">Low</option>
+              <option value="High">High</option>
+              <option value="Urgent">Urgent</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="task-status-select">Status</label>
+            <select id="task-status-select" class="form-control">
+              <option value="To Do">To Do</option>
+              <option value="In Progress">In Progress</option>
+              <option value="Done">Done</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+          <div class="form-group">
+            <label for="task-duedate-input">Due Date</label>
+            <input type="date" id="task-duedate-input" class="form-control" />
+          </div>
+          <div class="form-group">
+            <label for="task-assignee-select">Assigned Teammate</label>
+            <select id="task-assignee-select" class="form-control">
+              <option value="">Loading teammates...</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 1.5rem;">
+          <button type="button" class="btn btn-secondary modal-close">Cancel</button>
+          <button type="submit" class="btn">Create Task</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL 4: Team Members & Roles -->
+  <div id="modal-members" class="modal-backdrop">
+    <div class="modal" style="max-width: 550px;">
+      <div class="modal-header">
+        <h3 id="modal-members-title">Team Members</h3>
+        <button class="modal-close">&times;</button>
+      </div>
+
+      <!-- Invite Form (Admin Only) -->
+      <form id="form-invite-member" style="margin-bottom: 1.5rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--border-color);">
+        <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--text-muted);">
+          Invite Teammate by Email
+        </label>
+        <div style="display: flex; gap: 0.5rem;">
+          <input type="email" id="invite-email" class="form-control" placeholder="teammate@email.com" required style="flex: 1;" />
+          <select id="invite-role" class="form-control" style="width: 110px;">
+            <option value="Member">Member</option>
+            <option value="Admin">Admin</option>
+          </select>
+          <button type="submit" class="btn" style="white-space: nowrap;">Invite</button>
+        </div>
+      </form>
+
+      <!-- Members List -->
+      <div id="project-members-list" class="member-list"></div>
+    </div>
+  </div>
+
+  <!-- JavaScript Bundle -->
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/dashboard.js"></script>
+  <script src="js/projects.js"></script>
+  <script src="js/tasks.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
