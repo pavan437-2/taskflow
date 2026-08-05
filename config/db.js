@@ -4,19 +4,30 @@ require('dotenv').config();
 
 let sequelize;
 
-let dbUrl = process.env.DATABASE_URL || process.env.MYSQL_URL || process.env.MYSQL_PRIVATE_URL || process.env.MYSQLURL;
+const host = process.env.MYSQLHOST || process.env.MYSQL_HOST;
+const database = process.env.MYSQLDATABASE || process.env.MYSQL_DATABASE;
+const user = process.env.MYSQLUSER || process.env.MYSQL_USER;
+const password = process.env.MYSQLPASSWORD || process.env.MYSQL_PASSWORD;
+const port = process.env.MYSQLPORT || process.env.MYSQL_PORT || 3306;
 
-// Construct MySQL URL if individual Railway variables exist
-if (!dbUrl && process.env.MYSQLHOST && process.env.MYSQLDATABASE) {
-  const user = process.env.MYSQLUSER || 'root';
-  const pass = process.env.MYSQLPASSWORD || '';
-  const host = process.env.MYSQLHOST;
-  const port = process.env.MYSQLPORT || 3306;
-  const db = process.env.MYSQLDATABASE;
-  dbUrl = `mysql://${user}:${pass}@${host}:${port}/${db}`;
-}
+const dbUrl = process.env.DATABASE_URL || process.env.MYSQL_URL || process.env.MYSQL_PRIVATE_URL;
 
-if (dbUrl) {
+if (host && database) {
+  console.log(`Configuring MySQL connection via host parameters (${host}:${port}/${database})...`);
+  sequelize = new Sequelize(database, user || 'root', password || '', {
+    host: host,
+    port: parseInt(port, 10),
+    dialect: 'mysql',
+    logging: console.log,
+    pool: {
+      max: 5,
+      min: 0,
+      acquire: 30000,
+      idle: 10000
+    }
+  });
+} else if (dbUrl) {
+  console.log('Configuring database connection via URL string...');
   const isMysql = dbUrl.startsWith('mysql://');
   sequelize = new Sequelize(dbUrl, {
     dialect: isMysql ? 'mysql' : 'postgres',
@@ -30,7 +41,7 @@ if (dbUrl) {
     } : {}
   });
 } else {
-  // Local SQLite zero-config setup
+  console.log('No external DB configured. Using local SQLite database...');
   sequelize = new Sequelize({
     dialect: 'sqlite',
     storage: path.join(__dirname, '..', 'database.sqlite'),

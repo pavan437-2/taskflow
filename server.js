@@ -50,20 +50,19 @@ app.get('*', (req, res) => {
 async function startServer() {
   try {
     await sequelize.authenticate();
-    console.log('Database connection established successfully.');
+    console.log('✅ Database connection established successfully.');
 
-    // Auto-sync database models in non-production or first boot
     await sequelize.sync({ alter: true });
-    console.log('Database models synchronized.');
-
-    app.listen(PORT, () => {
-      console.log(`🚀 TaskFlow Server is running on port ${PORT}`);
-      console.log(`Open http://localhost:${PORT} in your browser.`);
-    });
+    console.log('✅ Database models synchronized.');
   } catch (err) {
-    console.error('Unable to connect to database or start server:', err);
-    process.exit(1);
+    console.error('❌ Unable to connect to configured database:', err.message);
+    console.error('Stack trace:', err);
   }
+
+  app.listen(PORT, () => {
+    console.log(`🚀 TaskFlow Server is running on port ${PORT}`);
+    console.log(`Open http://localhost:${PORT} in your browser.`);
+  });
 }
 
 startServer();
