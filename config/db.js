@@ -4,41 +4,62 @@ require('dotenv').config();
 
 let sequelize;
 
-const host = process.env.MYSQLHOST || process.env.MYSQL_HOST;
-const database = process.env.MYSQLDATABASE || process.env.MYSQL_DATABASE;
-const user = process.env.MYSQLUSER || process.env.MYSQL_USER;
-const password = process.env.MYSQLPASSWORD || process.env.MYSQL_PASSWORD;
-const port = process.env.MYSQLPORT || process.env.MYSQL_PORT || 3306;
+const postgresUrl = process.env.DATABASE_URL || process.env.POSTGRES_URL || process.env.DATABASE_PUBLIC_URL;
 
-const dbUrl = process.env.DATABASE_URL || process.env.MYSQL_URL || process.env.MYSQL_PRIVATE_URL;
+const pgHost = process.env.PGHOST || process.env.POSTGRES_HOST;
+const pgDatabase = process.env.PGDATABASE || process.env.POSTGRES_DB || process.env.POSTGRES_DATABASE;
+const pgUser = process.env.PGUSER || process.env.POSTGRES_USER;
+const pgPassword = process.env.PGPASSWORD || process.env.POSTGRES_PASSWORD;
+const pgPort = process.env.PGPORT || process.env.POSTGRES_PORT || 5432;
 
-if (host && database) {
-  console.log(`Configuring MySQL connection via host parameters (${host}:${port}/${database})...`);
-  sequelize = new Sequelize(database, user || 'root', password || '', {
-    host: host,
-    port: parseInt(port, 10),
-    dialect: 'mysql',
+const mysqlHost = process.env.MYSQLHOST || process.env.MYSQL_HOST;
+const mysqlDatabase = process.env.MYSQLDATABASE || process.env.MYSQL_DATABASE;
+const mysqlUser = process.env.MYSQLUSER || process.env.MYSQL_USER;
+const mysqlPassword = process.env.MYSQLPASSWORD || process.env.MYSQL_PASSWORD;
+const mysqlPort = process.env.MYSQLPORT || process.env.MYSQL_PORT || 3306;
+
+if (postgresUrl && !postgresUrl.startsWith('mysql://')) {
+  console.log('Configuring PostgreSQL connection via URL string...');
+  const isProd = process.env.NODE_ENV === 'production' || process.env.DB_SSL === 'true';
+  sequelize = new Sequelize(postgresUrl, {
+    dialect: 'postgres',
+    protocol: 'postgres',
     logging: console.log,
-    pool: {
-      max: 5,
-      min: 0,
-      acquire: 30000,
-      idle: 10000
-    }
-  });
-} else if (dbUrl) {
-  console.log('Configuring database connection via URL string...');
-  const isMysql = dbUrl.startsWith('mysql://');
-  sequelize = new Sequelize(dbUrl, {
-    dialect: isMysql ? 'mysql' : 'postgres',
-    protocol: isMysql ? 'mysql' : 'postgres',
-    logging: console.log,
-    dialectOptions: !isMysql && (process.env.NODE_ENV === 'production' || process.env.DB_SSL === 'true') ? {
+    dialectOptions: isProd ? {
       ssl: {
         require: true,
         rejectUnauthorized: false
       }
     } : {}
+  });
+} else if (pgHost && pgDatabase) {
+  console.log(`Configuring PostgreSQL connection via parameters (${pgHost}:${pgPort}/${pgDatabase})...`);
+  const isProd = process.env.NODE_ENV === 'production' || process.env.DB_SSL === 'true';
+  sequelize = new Sequelize(pgDatabase, pgUser || 'postgres', pgPassword || '', {
+    host: pgHost,
+    port: parseInt(pgPort, 10),
+    dialect: 'postgres',
+    logging: console.log,
+    dialectOptions: isProd ? {
+      ssl: {
+        require: true,
+        rejectUnauthorized: false
+      }
+    } : {}
+  });
+} else if (mysqlHost && mysqlDatabase) {
+  console.log(`Configuring MySQL connection via parameters (${mysqlHost}:${mysqlPort}/${mysqlDatabase})...`);
+  sequelize = new Sequelize(mysqlDatabase, mysqlUser || 'root', mysqlPassword || '', {
+    host: mysqlHost,
+    port: parseInt(mysqlPort, 10),
+    dialect: 'mysql',
+    logging: console.log
+  });
+} else if (postgresUrl && postgresUrl.startsWith('mysql://')) {
+  console.log('Configuring MySQL connection via URL string...');
+  sequelize = new Sequelize(postgresUrl, {
+    dialect: 'mysql',
+    logging: console.log
   });
 } else {
   console.log('No external DB configured. Using local SQLite database...');
