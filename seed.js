@@ -123,11 +123,15 @@ async function seed() {
     console.log('3. Member: email: jordan@taskflow.com | password: password123');
     console.log('----------------------------------------------------');
 
-    process.exit(0);
+    return { status: 'success' };
   } catch (err) {
     console.error('Error seeding database:', err);
-    process.exit(1);
+    throw err;
   }
 }
 
-seed();
+if (require.main === module) {
+  seed().then(() => process.exit(0)).catch(() => process.exit(1));
+}
+
+module.exports = seed;

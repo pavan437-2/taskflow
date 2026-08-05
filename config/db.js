@@ -4,14 +4,24 @@ require('dotenv').config();
 
 let sequelize;
 
-const dbUrl = process.env.DATABASE_URL || process.env.MYSQL_PRIVATE_URL || process.env.MYSQL_URL;
+let dbUrl = process.env.DATABASE_URL || process.env.MYSQL_URL || process.env.MYSQL_PRIVATE_URL || process.env.MYSQLURL;
+
+// Construct MySQL URL if individual Railway variables exist
+if (!dbUrl && process.env.MYSQLHOST && process.env.MYSQLDATABASE) {
+  const user = process.env.MYSQLUSER || 'root';
+  const pass = process.env.MYSQLPASSWORD || '';
+  const host = process.env.MYSQLHOST;
+  const port = process.env.MYSQLPORT || 3306;
+  const db = process.env.MYSQLDATABASE;
+  dbUrl = `mysql://${user}:${pass}@${host}:${port}/${db}`;
+}
 
 if (dbUrl) {
   const isMysql = dbUrl.startsWith('mysql://');
   sequelize = new Sequelize(dbUrl, {
     dialect: isMysql ? 'mysql' : 'postgres',
     protocol: isMysql ? 'mysql' : 'postgres',
-    logging: false,
+    logging: console.log,
     dialectOptions: !isMysql && (process.env.NODE_ENV === 'production' || process.env.DB_SSL === 'true') ? {
       ssl: {
         require: true,

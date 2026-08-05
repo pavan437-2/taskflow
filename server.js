@@ -27,7 +27,16 @@ app.use('/api/auth', authRoutes);
 app.use('/api/projects', projectRoutes);
 app.use('/api/projects/:projectId/tasks', taskRoutes);
 app.use('/api/dashboard', dashboardRoutes);
-app.use('/api/users', userRoutes);
+// Seed API route for populating demo data
+const seedFn = require('./seed');
+app.get('/api/seed', async (req, res) => {
+  try {
+    const result = await seedFn();
+    res.json({ message: 'Database seeded successfully with demo projects & tasks!', result });
+  } catch (err) {
+    res.status(500).json({ error: 'Seeding failed: ' + err.message });
+  }
+});
 
 // SPA Fallback: Serve index.html for all non-API GET requests
 app.get('*', (req, res) => {
