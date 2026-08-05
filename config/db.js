@@ -4,18 +4,20 @@ require('dotenv').config();
 
 let sequelize;
 
-if (process.env.DATABASE_URL) {
-  // Production PostgreSQL setup (e.g. Railway)
-  sequelize = new Sequelize(process.env.DATABASE_URL, {
-    dialect: 'postgres',
-    protocol: 'postgres',
+const dbUrl = process.env.DATABASE_URL || process.env.MYSQL_PRIVATE_URL || process.env.MYSQL_URL;
+
+if (dbUrl) {
+  const isMysql = dbUrl.startsWith('mysql://');
+  sequelize = new Sequelize(dbUrl, {
+    dialect: isMysql ? 'mysql' : 'postgres',
+    protocol: isMysql ? 'mysql' : 'postgres',
     logging: false,
-    dialectOptions: {
-      ssl: process.env.NODE_ENV === 'production' || process.env.DB_SSL === 'true' ? {
+    dialectOptions: !isMysql && (process.env.NODE_ENV === 'production' || process.env.DB_SSL === 'true') ? {
+      ssl: {
         require: true,
         rejectUnauthorized: false
-      } : false
-    }
+      }
+    } : {}
   });
 } else {
   // Local SQLite zero-config setup
